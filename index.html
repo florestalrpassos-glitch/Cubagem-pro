@@ -2,122 +2,165 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>COLETOR BRUMADO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>COLETOR BRUMADO PRO</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #ddd; }
-        .box { background: #fff; padding: 15px; border: 1px solid #000; margin-bottom: 10px; }
+        :root { --p: #1b5e20; --s: #0d47a1; --err: #b71c1c; }
+        body { font-family: sans-serif; background: #222; color: #fff; margin: 0; padding: 10px; }
+        
+        /* Botões de Aba Grandes */
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab { flex: 1; padding: 25px 10px; font-size: 1.2em; font-weight: bold; border: none; border-radius: 12px; background: #444; color: #fff; }
+        .active { background: var(--p) !important; border: 2px solid #fff; }
+
+        .card { background: #333; padding: 20px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #444; }
+        
+        /* Inputs Grandes para Celular */
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #aaa; }
+        input, select { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 10px; border: none; font-size: 18px; background: #eee; color: #000; box-sizing: border-box; }
+        
+        .btn-grande { width: 100%; padding: 25px; border: none; border-radius: 15px; font-size: 1.3em; font-weight: bold; color: white; cursor: pointer; margin-top: 10px; }
+        .btn-gps { background: #546e7a; border: 2px solid #fff; }
+        .btn-salvar { background: var(--p); }
+        .btn-export { background: var(--s); margin-top: 30px; }
+        
+        #foto-preview { width: 100%; border-radius: 10px; margin-top: 10px; display: none; border: 2px solid var(--p); }
+        .status-gps { text-align: center; font-size: 1.1em; margin: 10px 0; color: #00ff00; font-weight: bold; }
         .hidden { display: none; }
-        button { padding: 15px; cursor: pointer; font-weight: bold; width: 100%; margin: 5px 0; }
-        .btn-tab { background: #eee; width: 48%; display: inline-block; }
-        .active { background: #1b5e20; color: #fff; }
-        input { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-    <div style="text-align:center;">
-        <button id="tab1" class="btn-tab active" onclick="ver('L')">LENHA</button>
-        <button id="tab2" class="btn-tab" onclick="ver('T')">TORAS</button>
+    <div class="tabs">
+        <button id="tL" class="tab active" onclick="tab('L')">LENHA</button>
+        <button id="tT" class="tab" onclick="tab('T')">TORAS</button>
     </div>
 
-    <div class="box">
-        <button style="background:#444; color:#fff;" onclick="getLoc()">📍 CAPTURAR GPS</button>
-        <div id="status">GPS: Aguardando...</div>
+    <div class="card">
+        <button class="btn-grande btn-gps" onclick="pegarGPS()">📍 MARCAR PONTO + FOTO</button>
+        <div id="gps-status" class="status-gps">Aguardando Ponto...</div>
+        <input type="file" id="camera" accept="image/*" capture="environment" onchange="previewFoto()" style="display:none">
+        <img id="foto-preview">
         <input type="hidden" id="lat"><input type="hidden" id="lon">
     </div>
 
-    <div id="L">
-        <div class="box">
-            <h3>CADASTRO: LENHA</h3>
-            <label>ID Leira:</label><input type="text" id="l_id">
-            <label>Medidas (Larg x Alt x Comp):</label>
-            <input type="number" id="l_l" placeholder="Largura">
-            <input type="number" id="l_a" placeholder="Altura">
-            <input type="number" id="l_c" placeholder="Comprimento">
-            <button style="background:green; color:#fff;" onclick="add('L')">SALVAR DADOS</button>
+    <div id="boxL">
+        <div class="card">
+            <label>Nº DA LEIRA</label>
+            <input type="text" id="l_id" placeholder="Ex: 001">
+            <label>DIMENSÕES (L x A x C)</label>
+            <div style="display:flex; gap:5px;">
+                <input type="number" id="l_l" placeholder="L">
+                <input type="number" id="l_a" placeholder="A">
+                <input type="number" id="l_c" placeholder="C">
+            </div>
+            <button class="btn-grande btn-salvar" onclick="salvar('L')">SALVAR PILHA</button>
         </div>
     </div>
 
-    <div id="T" class="hidden">
-        <div class="box">
-            <h3>CADASTRO: TORAS</h3>
-            <label>Nº Tora:</label><input type="text" id="t_id">
-            <label>Espécie:</label><input type="text" id="t_sp">
-            <label>Comp / D1 / D2:</label>
-            <input type="number" id="t_c" placeholder="Comp">
-            <input type="number" id="t_d1" placeholder="D1">
-            <input type="number" id="t_d2" placeholder="D2">
-            <button style="background:green; color:#fff;" onclick="add('T')">SALVAR DADOS</button>
+    <div id="boxT" class="hidden">
+        <div class="card">
+            <label>Nº DA TORA</label>
+            <input type="text" id="t_id" placeholder="Ex: 105">
+            <label>ESPÉCIE</label>
+            <input type="text" id="t_sp" placeholder="Nome Popular">
+            <label>COMP / D1 / D2 (m)</label>
+            <div style="display:flex; gap:5px;">
+                <input type="number" id="t_c" placeholder="C">
+                <input type="number" id="t_d1" placeholder="D1">
+                <input type="number" id="t_d2" placeholder="D2">
+            </div>
+            <button class="btn-grande btn-salvar" onclick="salvar('T')">SALVAR TORA</button>
         </div>
     </div>
 
-    <button style="background:blue; color:#fff;" onclick="baixar()">📥 EXPORTAR CSV (EXCEL)</button>
-    <button style="background:red; color:#fff; margin-top:50px;" onclick="limpar()">LIMPAR TUDO</button>
+    <button class="btn-grande btn-export" onclick="exportar()">📥 EXPORTAR CSV (EXCEL)</button>
+    <button style="background:none; color:red; border:none; width:100%; margin-top:40px;" onclick="limpar()">LIMPAR MEMÓRIA</button>
 
-    <script>
-        var banco = JSON.parse(localStorage.getItem('dados_v4')) || [];
+<script>
+    var db = JSON.parse(localStorage.getItem('brumado_v5')) || [];
 
-        function ver(aba) {
-            if(aba == 'L') {
-                document.getElementById('L').className = '';
-                document.getElementById('T').className = 'hidden';
-                document.getElementById('tab1').className = 'btn-tab active';
-                document.getElementById('tab2').className = 'btn-tab';
-            } else {
-                document.getElementById('L').className = 'hidden';
-                document.getElementById('T').className = '';
-                document.getElementById('tab1').className = 'btn-tab';
-                document.getElementById('tab2').className = 'btn-tab active';
-            }
+    function tab(a) {
+        document.getElementById('boxL').className = (a=='L'?'':'hidden');
+        document.getElementById('boxT').className = (a=='T'?'':'hidden');
+        document.getElementById('tL').className = (a=='L'?'tab active':'tab');
+        document.getElementById('tT').className = (a=='T'?'tab active':'tab');
+    }
+
+    function pegarGPS() {
+        if (!navigator.geolocation) return alert("GPS Off");
+        document.getElementById('gps-status').innerText = "Buscando Sinal...";
+        
+        navigator.geolocation.getCurrentPosition(function(p) {
+            document.getElementById('lat').value = p.coords.latitude;
+            document.getElementById('lon').value = p.coords.longitude;
+            document.getElementById('gps-status').innerText = "📍 PONTO OK! TIRE A FOTO.";
+            // Dispara a câmera automaticamente após pegar o GPS
+            document.getElementById('camera').click();
+        }, function(e) { alert("Ative o GPS!"); }, {enableHighAccuracy: true});
+    }
+
+    function previewFoto() {
+        var file = document.getElementById('camera').files[0];
+        var reader = new FileReader();
+        reader.onloadend = function() {
+            var img = document.getElementById('foto-preview');
+            img.src = reader.result;
+            img.style.display = 'block';
+        }
+        if (file) reader.readAsDataURL(file);
+    }
+
+    function salvar(tipo) {
+        var item = {
+            t: tipo,
+            lat: document.getElementById('lat').value,
+            lon: document.getElementById('lon').value,
+            hora: new Date().toLocaleString()
+        };
+
+        if(tipo == 'L') {
+            item.id = document.getElementById('l_id').value;
+            var v = document.getElementById('l_l').value * document.getElementById('l_a').value * document.getElementById('l_c').value;
+            item.vol = (v / 1.5).toFixed(3);
+        } else {
+            item.id = document.getElementById('t_id').value;
+            item.sp = document.getElementById('t_sp').value;
+            var d1 = document.getElementById('t_d1').value;
+            var d2 = document.getElementById('t_d2').value;
+            var c = document.getElementById('t_c').value;
+            var a1 = 3.14159 * Math.pow(d1/2, 2);
+            var a2 = 3.14159 * Math.pow(d2/2, 2);
+            item.vol = (((a1+a2)/2) * c).toFixed(4);
         }
 
-        function getLoc() {
-            navigator.geolocation.getCurrentPosition(function(p) {
-                document.getElementById('lat').value = p.coords.latitude;
-                document.getElementById('lon').value = p.coords.longitude;
-                document.getElementById('status').innerText = "📍 LOCALIZADO!";
-            }, function(e) { alert("ERRO: Ative o GPS!"); });
-        }
+        db.push(item);
+        localStorage.setItem('brumado_v5', JSON.stringify(db));
+        alert("REGISTRO SALVO!");
+        // Limpa foto para o próximo
+        document.getElementById('foto-preview').style.display = 'none';
+    }
 
-        function add(tipo) {
-            var obj = { 
-                tipo: tipo, 
-                lat: document.getElementById('lat').value, 
-                lon: document.getElementById('lon').value 
-            };
-            if(tipo == 'L') {
-                obj.id = document.getElementById('l_id').value;
-                var volSt = document.getElementById('l_l').value * document.getElementById('l_a').value * document.getElementById('l_c').value;
-                obj.v = (volSt / 1.5).toFixed(3);
-            } else {
-                obj.id = document.getElementById('t_id').value;
-                var d1 = document.getElementById('t_d1').value;
-                var d2 = document.getElementById('t_d2').value;
-                var c = document.getElementById('t_c').value;
-                var a1 = 3.14159 * Math.pow(d1/2, 2);
-                var a2 = 3.14159 * Math.pow(d2/2, 2);
-                obj.v = (((a1+a2)/2) * c).toFixed(4);
-            }
-            banco.push(obj);
-            localStorage.setItem('dados_v4', JSON.stringify(banco));
-            alert("Salvo!");
-        }
+    function exportar() {
+        var csv = "TIPO;ID;ESPECIE;LAT;LON;HORA;VOLUME\n";
+        db.forEach(function(i){
+            csv += i.t+";"+i.id+";"+(i.sp||'')+";"+i.lat+";"+i.lon+";"+i.hora+";"+i.vol+"\n";
+        });
+        var blob = new Blob(["\ufeff", csv], {type: 'text/csv'});
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "coleta_brumado.csv";
+        a.click();
+    }
 
-        function baixar() {
-            var csv = "TIPO;ID;LAT;LON;VOL_M3\n";
-            for(var i=0; i<banco.length; i++) {
-                csv += banco[i].tipo + ";" + banco[i].id + ";" + banco[i].lat + ";" + banco[i].lon + ";" + banco[i].v + "\n";
-            }
-            var blob = new Blob(["\ufeff", csv], {type: 'text/csv'});
-            var a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "coleta.csv";
-            a.click();
-        }
+    function limpar() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } }
 
-        function limpar() {
-            if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); }
-        }
-    </script>
+    // Registra o Service Worker para funcionar 100% OFFLINE
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+</script>
 </body>
 </html>
