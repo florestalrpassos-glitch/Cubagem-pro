@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coletor Brumado Pro</title>
+    <style>
+        :root { --primary: #1b5e20; --secondary: #0d47a1; --bg: #f4f7f6; }
+        body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 50px; }
+        header { background: var(--primary); color: white; padding: 20px; text-align: center; font-size: 1.2em; font-weight: bold; }
+        .container { padding: 15px; max-width: 500px; margin: auto; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .tabs { display: flex; margin-bottom: 15px; border: 1px solid var(--primary); border-radius: 5px; overflow: hidden; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; background: white; color: var(--primary); font-weight: bold; }
+        .tab.active { background: var(--primary); color: white; }
+        label { display: block; margin: 10px 0 5px; font-weight: bold; font-size: 0.9em; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        .row { display: flex; gap: 8px; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 5px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-gps { background: #455a64; margin-bottom: 5px; }
+        .btn-add { background: var(--primary); }
+        .btn-export { background: var(--secondary); margin-top: 20px; }
+        .btn-clear { background: #b71c1c; font-size: 12px; padding: 8px; margin-top: 30px; }
+        #coord_status { font-size: 0.8em; color: #666; margin-bottom: 10px; display: block; }
+    </style>
+</head>
+<body>
+
+<header>COLETOR FLORESTAL</header>
+
+<div class="container">
+    <div class="tabs">
+        <div id="tabL" class="tab active" onclick="switchTab('L')">LENHA</div>
+        <div id="tabT" class="tab" onclick="switchTab('T')">TORAS</div>
+    </div>
+
+    <div class="card">
+        <button class="btn btn-gps" onclick="pegarGPS()">📍 CAPTURAR COORDENADAS</button>
+        <span id="coord_status">GPS: Não capturado</span>
+        <input type="hidden" id="utm_lat">
+        <input type="hidden" id="utm_lon">
+    </div>
+
+    <div id="formL">
+        <div class="card">
+            <div class="row">
+                <div><label>Leira Nº</label><input type="text" id="l_leira"></div>
+                <div><label>Estrutura</label><input type="text" id="l_estru"></div>
+            </div>
+            <label>Termo de Doação</label><input type="text" id="l_termo">
+            <label>APP</label>
+            <select id="l_app"><option value="NÃO">NÃO</option><option value="SIM">SIM</option></select>
+            <label>Dimensões (LxAxC)</label>
+            <div class="row">
+                <input type="number" id="l_l" placeholder="Larg">
+                <input type="number" id="l_a" placeholder="Alt">
+                <input type="number" id="l_c" placeholder="Comp">
+            </div>
+            <button class="btn btn-add" onclick="salvar('L')">SALVAR LENHA</button>
+        </div>
+    </div>
+
+    <div id="formT" style="display:none;">
+        <div class="card">
+            <div class="row">
+                <div><label>Nº Tora</label><input type="text" id="t_n"></div>
+                <div><label>Nome Popular</label><input type="text" id="t_pop"></div>
+            </div>
+            <label>Nome Científico</label><input type="text" id="t_cie">
+            <div class="row">
+                <div><label>Estrutura</label><input type="text" id="t_estru"></div>
+                <div><label>APP</label>
+                    <select id="t_app"><option value="NÃO">NÃO</option><option value="SIM">SIM</option></select>
+                </div>
+            </div>
+            <label>Comp. / Diâmetros (m)</label>
+            <div class="row">
+                <input type="number" id="t_c" placeholder="Comp">
+                <input type="number" id="t_d1" placeholder="D1">
+                <input type="number" id="t_d2" placeholder="D2">
+            </div>
+            <label>Protegida?</label>
+            <select id="t_prot"><option value="NÃO">NÃO</option><option value="SIM">SIM</option></select>
+            <button class="btn btn-add" onclick="salvar('T')">SALVAR TORA</button>
+        </div>
+    </div>
+
+    <button class="btn btn-export" onclick="exportar()">📥 EXPORTAR CSV COMPLETO</button>
+    <button class="btn btn-clear" onclick="limpar()">LIMPAR TUDO</button>
+</div>
+
+<script>
+    let currentTab = 'L';
+    let db = JSON.parse(localStorage.getItem('coleta_florestal')) || [];
+
+    function switchTab(t) {
+        currentTab = t;
+        document.getElementById('formL').style.display = t === 'L' ? 'block' : 'none';
+        document.getElementById('formT').style.display = t === 'T' ? 'block' : 'none';
+        document.getElementById('tabL').className = t === 'L' ? 'tab active' : 'tab';
+        document.getElementById('tabT').className = t === 'T' ? 'tab active' : 'tab';
+    }
+
+    function pegarGPS() {
+        if (!navigator.geolocation) return alert("Sem suporte a GPS");
+        document.getElementById('coord_status').innerText = "Buscando satélites...";
+        
+        navigator.geolocation.getCurrentPosition(p => {
+            document.getElementById('utm_lat').value = p.coords.latitude.toFixed(6);
+            document.getElementById('utm_lon').value = p.coords.longitude.toFixed(6);
+            document.getElementById('coord_status').innerText = "📍 OK: " + p.coords.latitude.toFixed(4) + " / " + p.coords.longitude.toFixed(4);
+        }, e => alert("Erro GPS: Ative a localização e use como 'App Instalado'"), {enableHighAccuracy: true});
+    }
+
+    function salvar(tipo) {
+        let item = { tipo, lat: document.getElementById('utm_lat').value, lon: document.getElementById('utm_lon').value };
+        
+        if(tipo === 'L') {
+            item.id = document.getElementById('l_leira').value;
+            item.est = document.getElementById('l_estru').value;
+            item.term = document.getElementById('l_termo').value;
+            item.app = document.getElementById('l_app').value;
+            const l = document.getElementById('l_l').value;
+            const a = document.getElementById('l_a').value;
+            const c = document.getElementById('l_c').value;
+            item.dim = ${l}x${a}x${c};
+            item.v1 = (l*a*c).toFixed(3);
+            item.v2 = (item.v1 / 1.5).toFixed(3);
+        } else {
+            item.id = document.getElementById('t_n').value;
+            item.pop = document.getElementById('t_pop').value;
+            item.cie = document.getElementById('t_cie').value;
+            item.est = document.getElementById('t_estru').value;
+            item.app = document.getElementById('t_app').value;
+            item.c = document.getElementById('t_c').value;
+            item.d1 = document.getElementById('t_d1').value;
+            item.d2 = document.getElementById('t_d2').value;
+            item.prot = document.getElementById('t_prot').value;
+            let a1 = Math.PI * Math.pow(item.d1/2, 2);
+            let a2 = Math.PI * Math.pow(item.d2/2, 2);
+            item.v2 = (((a1+a2)/2) * item.c).toFixed(4);
+        }
+        
+        db.push(item);
+        localStorage.setItem('coleta_florestal', JSON.stringify(db));
+        alert("Salvo com sucesso!");
+    }
+
+    function exportar() {
+        if(db.length === 0) return alert("Nenhum dado para exportar");
+        
+        // Cabeçalho unificado conforme imagem
+        let csv = "TIPO;ID;ESTRUTURA;TERMO;APP;LAT;LON;DIM/COMP;D1;D2;PROT;VOL_ST;VOL_M3\n";
+        
+        db.forEach(i => {
+            if(i.tipo === 'L') {
+                csv += LENHA;${i.id};${i.est};${i.term};${i.app};${i.lat};${i.lon};${i.dim};;;;${i.v1};${i.v2}\n;
+            } else {
+                csv += TORA;${i.id};${i.est};;${i.app};${i.lat};${i.lon};${i.c};${i.d1};${i.d2};${i.prot};;${i.v2}\n;
+            }
+        });
+
+        let blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = coleta_campo_${new Date().getTime()}.csv;
+        a.click();
+    }
+
+    function limpar() {
+        if(confirm("Apagar todos os dados?")) { localStorage.clear(); location.reload(); }
+    }
+</script>
+</body>
+</html>
