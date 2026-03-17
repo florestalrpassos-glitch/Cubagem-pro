@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coletor Brumado Pro</title>
+    <title>Coletor Brumado</title>
     <style>
         :root { --primary: #1b5e20; --secondary: #0d47a1; --bg: #f4f7f6; }
         body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 50px; }
@@ -37,8 +37,7 @@
     <div class="card">
         <button class="btn btn-gps" onclick="pegarGPS()">📍 CAPTURAR COORDENADAS</button>
         <span id="coord_status">GPS: Não capturado</span>
-        <input type="hidden" id="utm_lat">
-        <input type="hidden" id="utm_lon">
+        <input type="hidden" id="utm_lat"><input type="hidden" id="utm_lon">
     </div>
 
     <div id="formL">
@@ -85,16 +84,14 @@
         </div>
     </div>
 
-    <button class="btn btn-export" onclick="exportar()">📥 EXPORTAR CSV COMPLETO</button>
+    <button class="btn btn-export" onclick="exportar()">📥 EXPORTAR CSV</button>
     <button class="btn btn-clear" onclick="limpar()">LIMPAR TUDO</button>
 </div>
 
 <script>
-    let currentTab = 'L';
-    let db = JSON.parse(localStorage.getItem('coleta_florestal')) || [];
+    let db = JSON.parse(localStorage.getItem('coleta_brumado')) || [];
 
     function switchTab(t) {
-        currentTab = t;
         document.getElementById('formL').style.display = t === 'L' ? 'block' : 'none';
         document.getElementById('formT').style.display = t === 'T' ? 'block' : 'none';
         document.getElementById('tabL').className = t === 'L' ? 'tab active' : 'tab';
@@ -104,26 +101,24 @@
     function pegarGPS() {
         if (!navigator.geolocation) return alert("Sem suporte a GPS");
         document.getElementById('coord_status').innerText = "Buscando satélites...";
-        
         navigator.geolocation.getCurrentPosition(p => {
             document.getElementById('utm_lat').value = p.coords.latitude.toFixed(6);
             document.getElementById('utm_lon').value = p.coords.longitude.toFixed(6);
-            document.getElementById('coord_status').innerText = "📍 OK: " + p.coords.latitude.toFixed(4) + " / " + p.coords.longitude.toFixed(4);
-        }, e => alert("Erro GPS: Ative a localização e use como 'App Instalado'"), {enableHighAccuracy: true});
+            document.getElementById('coord_status').innerText = "📍 OK: " + p.coords.latitude.toFixed(4);
+        }, e => alert("Erro GPS: Ative a localização nas configurações do Chrome/Safari"), {enableHighAccuracy: true});
     }
 
     function salvar(tipo) {
         let item = { tipo, lat: document.getElementById('utm_lat').value, lon: document.getElementById('utm_lon').value };
-        
         if(tipo === 'L') {
             item.id = document.getElementById('l_leira').value;
             item.est = document.getElementById('l_estru').value;
             item.term = document.getElementById('l_termo').value;
             item.app = document.getElementById('l_app').value;
-            const l = document.getElementById('l_l').value;
-            const a = document.getElementById('l_a').value;
-            const c = document.getElementById('l_c').value;
-            item.dim = ${l}x${a}x${c};
+            let l = document.getElementById('l_l').value;
+            let a = document.getElementById('l_a').value;
+            let c = document.getElementById('l_c').value;
+            item.dim = `${l}x${a}x${c}`;
             item.v1 = (l*a*c).toFixed(3);
             item.v2 = (item.v1 / 1.5).toFixed(3);
         } else {
@@ -140,37 +135,26 @@
             let a2 = Math.PI * Math.pow(item.d2/2, 2);
             item.v2 = (((a1+a2)/2) * item.c).toFixed(4);
         }
-        
         db.push(item);
-        localStorage.setItem('coleta_florestal', JSON.stringify(db));
-        alert("Salvo com sucesso!");
+        localStorage.setItem('coleta_brumado', JSON.stringify(db));
+        alert("Dados salvos no celular!");
     }
 
     function exportar() {
-        if(db.length === 0) return alert("Nenhum dado para exportar");
-        
-        // Cabeçalho unificado conforme imagem
+        if(db.length === 0) return alert("Nada para exportar");
         let csv = "TIPO;ID;ESTRUTURA;TERMO;APP;LAT;LON;DIM/COMP;D1;D2;PROT;VOL_ST;VOL_M3\n";
-        
         db.forEach(i => {
-            if(i.tipo === 'L') {
-                csv += LENHA;${i.id};${i.est};${i.term};${i.app};${i.lat};${i.lon};${i.dim};;;;${i.v1};${i.v2}\n;
-            } else {
-                csv += TORA;${i.id};${i.est};;${i.app};${i.lat};${i.lon};${i.c};${i.d1};${i.d2};${i.prot};;${i.v2}\n;
-            }
+            if(i.tipo === 'L') csv += `LENHA;${i.id};${i.est};${i.term};${i.app};${i.lat};${i.lon};${i.dim};;;;${i.v1};${i.v2}\n`;
+            else csv += `TORA;${i.id};${i.est};;${i.app};${i.lat};${i.lon};${i.c};${i.d1};${i.d2};${i.prot};;${i.v2}\n`;
         });
-
         let blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8' });
-        let url = URL.createObjectURL(blob);
         let a = document.createElement("a");
-        a.href = url;
-        a.download = coleta_campo_${new Date().getTime()}.csv;
+        a.href = URL.createObjectURL(blob);
+        a.download = `inventario_${new Date().getTime()}.csv`;
         a.click();
     }
 
-    function limpar() {
-        if(confirm("Apagar todos os dados?")) { localStorage.clear(); location.reload(); }
-    }
+    function limpar() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
 </html>
