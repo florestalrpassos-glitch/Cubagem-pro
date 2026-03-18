@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>COLETOR FLORESTAL BA</title>
+    <title>COLETOR FLORESTAL V8</title>
     <style>
-        :root { --p: #2e7d32; --s: #1565c0; }
+        :root { --p: #2e7d32; --s: #1565c0; --t: #455a64; }
         body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 10px; }
         .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
         .tab { flex: 1; padding: 22px; font-size: 1.1em; font-weight: bold; border: none; border-radius: 12px; background: #333; color: #fff; }
@@ -13,10 +13,11 @@
         .card { background: #1e1e1e; padding: 20px; border-radius: 15px; margin-bottom: 12px; border: 1px solid #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #81c784; font-size: 0.9em; }
         input, select { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 10px; border: none; font-size: 18px; background: #eee; color: #000; box-sizing: border-box; }
-        .btn-g { width: 100%; padding: 25px; border: none; border-radius: 15px; font-size: 1.3em; font-weight: bold; color: white; cursor: pointer; }
-        .btn-gps { background: #455a64; margin-bottom: 10px; border: 1px solid #fff; }
+        .btn-g { width: 100%; padding: 25px; border: none; border-radius: 15px; font-size: 1.2em; font-weight: bold; color: white; cursor: pointer; }
+        .btn-gps { background: var(--t); margin-bottom: 10px; border: 1px solid #fff; }
         .btn-save { background: var(--p); }
-        .btn-exp { background: var(--s); margin-top: 30px; }
+        .btn-exp-l { background: #ffa000; margin-top: 20px; color: #000; }
+        .btn-exp-t { background: #00796b; margin-top: 10px; }
         .status-gps { text-align: center; font-size: 1.1em; margin: 10px 0; color: #ffeb3b; font-weight: bold; }
         .hidden { display: none; }
     </style>
@@ -38,13 +39,13 @@
         <div class="card">
             <label>Nº DA LEIRA</label>
             <input type="text" id="l_id" placeholder="Ex: L-001">
-            <label>DIMENSÕES (L x A x C)</label>
+            <label>DIMENSÕES (Larg x Alt x Comp)</label>
             <div style="display:flex; gap:5px;">
-                <input type="number" id="l_l" placeholder="Larg">
-                <input type="number" id="l_a" placeholder="Alt">
-                <input type="number" id="l_c" placeholder="Comp">
+                <input type="number" id="l_l" placeholder="L">
+                <input type="number" id="l_a" placeholder="A">
+                <input type="number" id="l_c" placeholder="C">
             </div>
-            <button class="btn-g btn-save" onclick="salvar('L')">SALVAR E LIMPAR</button>
+            <button class="btn-g btn-save" onclick="salvar('L')">SALVAR LENHA</button>
         </div>
     </div>
 
@@ -56,25 +57,23 @@
                 <input type="text" id="t_sp" placeholder="Espécie">
             </div>
             <label>ESPÉCIE PROTEGIDA?</label>
-            <select id="t_prot">
-                <option value="NÃO">NÃO</option>
-                <option value="SIM">SIM</option>
-            </select>
+            <select id="t_prot"><option value="NÃO">NÃO</option><option value="SIM">SIM</option></select>
             <label>COMP / D1 / D2 (m)</label>
             <div style="display:flex; gap:5px;">
                 <input type="number" id="t_c" placeholder="C">
                 <input type="number" id="t_d1" placeholder="D1">
                 <input type="number" id="t_d2" placeholder="D2">
             </div>
-            <button class="btn-g btn-save" onclick="salvar('T')">SALVAR E LIMPAR</button>
+            <button class="btn-g btn-save" onclick="salvar('T')">SALVAR TORA</button>
         </div>
     </div>
 
-    <button class="btn-g btn-exp" onclick="exportar()">📥 EXPORTAR CSV PARA EXCEL</button>
-    <button style="background:none; color:#666; border:none; width:100%; margin-top:50px; font-size:10px" onclick="limpar()">LIMPAR MEMÓRIA DO APP</button>
+    <button class="btn-g btn-exp-l" onclick="exportar('L')">📥 EXPORTAR PLANILHA LENHA</button>
+    <button class="btn-g btn-exp-t" onclick="exportar('T')">📥 EXPORTAR PLANILHA TORAS</button>
+    <button style="background:none; color:#666; border:none; width:100%; margin-top:50px;" onclick="limpar()">LIMPAR TUDO</button>
 
 <script>
-    var db = JSON.parse(localStorage.getItem('coleta_ba_v7')) || [];
+    var db = JSON.parse(localStorage.getItem('coleta_ba_v8')) || [];
 
     function tab(a) {
         document.getElementById('boxL').className = (a=='L'?'':'hidden');
@@ -83,7 +82,6 @@
         document.getElementById('tT').className = (a=='T'?'tab active':'tab');
     }
 
-    // Conversor UTM Dinâmico (Detecta Fuso 23 ou 24)
     function toUTM(lat, lon) {
         var fuso = Math.floor((lon + 180) / 6) + 1;
         var sa = 6378137.0; var sb = 6356752.3142;
@@ -104,60 +102,47 @@
     }
 
     function getGPS() {
-        document.getElementById('gps-st').innerText = "Buscando satélites...";
+        document.getElementById('gps-st').innerText = "Buscando...";
         navigator.geolocation.getCurrentPosition(function(p) {
             var utm = toUTM(p.coords.latitude, p.coords.longitude);
-            document.getElementById('utme').value = utm.e;
-            document.getElementById('utmn').value = utm.n;
-            document.getElementById('fuso').value = utm.f;
+            document.getElementById('utme').value = utm.e; document.getElementById('utmn').value = utm.n; document.getElementById('fuso').value = utm.f;
             document.getElementById('gps-st').innerText = "📍 Fuso " + utm.f + " | E: " + utm.e;
-        }, function(e) { alert("ERRO: Ative o GPS do celular!"); }, {enableHighAccuracy: true});
+        }, function(e) { alert("Ative o GPS!"); }, {enableHighAccuracy: true});
     }
 
     function salvar(tipo) {
-        if(!document.getElementById('utme').value) return alert("Clique em CAPTURAR COORDENADA antes de salvar!");
-        
-        var item = {
-            tipo: tipo, e: document.getElementById('utme').value, n: document.getElementById('utmn').value,
-            fuso: document.getElementById('fuso').value, hora: new Date().toLocaleString()
-        };
+        if(!document.getElementById('utme').value) return alert("Capture o GPS primeiro!");
+        var item = { tipo: tipo, e: document.getElementById('utme').value, n: document.getElementById('utmn').value, fuso: document.getElementById('fuso').value, hora: new Date().toLocaleString() };
 
         if(tipo == 'L') {
             item.id = document.getElementById('l_id').value;
-            var volSt = document.getElementById('l_l').value * document.getElementById('l_a').value * document.getElementById('l_c').value;
-            item.vol = (volSt / 1.5).toFixed(3);
-            // Limpa Lenha
+            item.m1 = document.getElementById('l_l').value; item.m2 = document.getElementById('l_a').value; item.m3 = document.getElementById('l_c').value;
+            item.vol = ((item.m1 * item.m2 * item.m3) / 1.5).toFixed(3);
             document.getElementById('l_id').value=''; document.getElementById('l_l').value=''; document.getElementById('l_a').value=''; document.getElementById('l_c').value='';
         } else {
-            item.id = document.getElementById('t_id').value;
-            item.sp = document.getElementById('t_sp').value;
-            item.prot = document.getElementById('t_prot').value;
-            var d1 = document.getElementById('t_d1').value; var d2 = document.getElementById('t_d2').value; var c = document.getElementById('t_c').value;
-            var a1 = Math.PI * Math.pow(d1/2, 2); var a2 = Math.PI * Math.pow(d2/2, 2);
-            item.vol = (((a1+a2)/2) * c).toFixed(4);
-            // Limpa Toras
+            item.id = document.getElementById('t_id').value; item.sp = document.getElementById('t_sp').value; item.prot = document.getElementById('t_prot').value;
+            item.m1 = document.getElementById('t_c').value; item.m2 = document.getElementById('t_d1').value; item.m3 = document.getElementById('t_d2').value;
+            var a1 = Math.PI * Math.pow(item.m2/2, 2); var a2 = Math.PI * Math.pow(item.m3/2, 2);
+            item.vol = (((a1+a2)/2) * item.m1).toFixed(4);
             document.getElementById('t_id').value=''; document.getElementById('t_sp').value=''; document.getElementById('t_c').value=''; document.getElementById('t_d1').value=''; document.getElementById('t_d2').value='';
         }
-
-        db.push(item);
-        localStorage.setItem('coleta_ba_v7', JSON.stringify(db));
-        document.getElementById('utme').value = ''; document.getElementById('gps-st').innerText = "Salvo! Pegue o próximo ponto.";
+        db.push(item); localStorage.setItem('coleta_ba_v8', JSON.stringify(db));
+        document.getElementById('utme').value = ''; document.getElementById('gps-st').innerText = "Salvo! Pegue o próximo.";
         alert("REGISTRO SALVO!");
     }
 
-    function exportar() {
-        var csv = "TIPO;ID;ESPECIE;PROTEGIDA;FUSO;UTM_E;UTM_N;DATA_HORA;VOLUME_M3\n";
-        db.forEach(function(i){
-            csv += i.tipo+";"+(i.id||'')+";"+(i.sp||'')+";"+(i.prot||'')+";"+i.fuso+";"+i.e+";"+i.n+";"+i.hora+";"+i.vol+"\n";
+    function exportar(tipo) {
+        var dados = db.filter(i => i.tipo == tipo);
+        if(dados.length == 0) return alert("Nenhum dado deste tipo!");
+        var csv = (tipo == 'L') ? "ID;FUSO;UTM_E;UTM_N;LARGURA;ALTURA;COMPRIMENTO;DATA_HORA;VOL_M3\n" : "ID;ESPECIE;PROTEGIDA;FUSO;UTM_E;UTM_N;COMP_M;D1_M;D2_M;DATA_HORA;VOL_M3\n";
+        dados.forEach(i => {
+            csv += (tipo == 'L') ? `${i.id};${i.fuso};${i.e};${i.n};${i.m1};${i.m2};${i.m3};${i.hora};${i.vol}\n` : `${i.id};${i.sp};${i.prot};${i.fuso};${i.e};${i.n};${i.m1};${i.m2};${i.m3};${i.hora};${i.vol}\n`;
         });
         var blob = new Blob(["\ufeff", csv], {type: 'text/csv'});
-        var a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "coleta_bahia.csv";
-        a.click();
+        var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = (tipo == 'L' ? "lenha_brumado.csv" : "toras_brumado.csv"); a.click();
     }
 
-    function limpar() { if(confirm("Apagar todos os dados salvos?")) { localStorage.clear(); location.reload(); } }
+    function limpar() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
 </html>
