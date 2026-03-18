@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>COLETOR FLORESTAL V9</title>
+    <title>COLETOR FLORESTAL V10</title>
     <style>
         :root { --p: #2e7d32; --s: #1565c0; --t: #455a64; --warn: #d32f2f; }
         body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 10px; }
@@ -40,6 +40,8 @@
         <div class="card">
             <label>Nº DA LEIRA</label>
             <input type="text" id="l_id" placeholder="Ex: L-001">
+            <label>LEIRA EM ÁREA PROTEGIDA?</label>
+            <select id="l_prot"><option value="NÃO">NÃO</option><option value="SIM">SIM</option></select>
             <label>DIMENSÕES (Larg x Alt x Comp)</label>
             <div style="display:flex; gap:5px;">
                 <input type="number" id="l_l" placeholder="L">
@@ -75,7 +77,7 @@
     <button class="btn-danger" onclick="limpar()">⚠️ LIMPAR TUDO (PERDER HISTÓRICO)</button>
 
 <script>
-    var db = JSON.parse(localStorage.getItem('coleta_ba_v9')) || [];
+    var db = JSON.parse(localStorage.getItem('coleta_ba_v10')) || [];
 
     function tab(a) {
         document.getElementById('boxL').className = (a=='L'?'':'hidden');
@@ -118,6 +120,7 @@
 
         if(tipo == 'L') {
             item.id = document.getElementById('l_id').value;
+            item.prot = document.getElementById('l_prot').value;
             item.m1 = document.getElementById('l_l').value; item.m2 = document.getElementById('l_a').value; item.m3 = document.getElementById('l_c').value;
             item.vol = ((item.m1 * item.m2 * item.m3) / 1.5).toFixed(3);
             document.getElementById('l_id').value=''; document.getElementById('l_l').value=''; document.getElementById('l_a').value=''; document.getElementById('l_c').value='';
@@ -128,27 +131,25 @@
             item.vol = (((a1+a2)/2) * item.m1).toFixed(4);
             document.getElementById('t_id').value=''; document.getElementById('t_sp').value=''; document.getElementById('t_c').value=''; document.getElementById('t_d1').value=''; document.getElementById('t_d2').value='';
         }
-        db.push(item); localStorage.setItem('coleta_ba_v9', JSON.stringify(db));
-        document.getElementById('utme').value = ''; document.getElementById('gps-st').innerText = "Salvo! Pegue o próximo.";
-        alert("REGISTRO SALVO COM SUCESSO!");
+        db.push(item); localStorage.setItem('coleta_ba_v10', JSON.stringify(db));
+        document.getElementById('utme').value = ''; document.getElementById('gps-st').innerText = "Salvo! Próximo ponto.";
+        alert("REGISTRO SALVO!");
     }
 
     function exportar(tipo) {
         var dados = db.filter(i => i.tipo == tipo);
         if(dados.length == 0) return alert("Nenhum dado salvo para este tipo!");
-        var csv = (tipo == 'L') ? "ID;FUSO;UTM_E;UTM_N;LARGURA;ALTURA;COMPRIMENTO;DATA_HORA;VOL_M3\n" : "ID;ESPECIE;PROTEGIDA;FUSO;UTM_E;UTM_N;COMP_M;D1_M;D2_M;DATA_HORA;VOL_M3\n";
+        var csv = (tipo == 'L') ? "ID;PROTEGIDA;FUSO;UTM_E;UTM_N;LARGURA;ALTURA;COMPRIMENTO;DATA_HORA;VOL_M3\n" : "ID;ESPECIE;PROTEGIDA;FUSO;UTM_E;UTM_N;COMP_M;D1_M;D2_M;DATA_HORA;VOL_M3\n";
         dados.forEach(i => {
-            csv += (tipo == 'L') ? `${i.id};${i.fuso};${i.e};${i.n};${i.m1};${i.m2};${i.m3};${i.hora};${i.vol}\n` : `${i.id};${i.sp};${i.prot};${i.fuso};${i.e};${i.n};${i.m1};${i.m2};${i.m3};${i.hora};${i.vol}\n`;
+            csv += (tipo == 'L') ? `${i.id};${i.prot};${i.fuso};${i.e};${i.n};${i.m1};${i.m2};${i.m3};${i.hora};${i.vol}\n` : `${i.id};${i.sp};${i.prot};${i.fuso};${i.e};${i.n};${i.m1};${i.m2};${i.m3};${i.hora};${i.vol}\n`;
         });
         var blob = new Blob(["\ufeff", csv], {type: 'text/csv'});
         var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = (tipo == 'L' ? "lenha_bahia.csv" : "toras_bahia.csv"); a.click();
     }
 
     function limpar() { 
-        var confirma = confirm("⚠️ ATENÇÃO: Você está prestes a apagar TODOS os dados coletados. Se você não exportou a planilha ainda, vai perder todo o trabalho. Deseja continuar?");
-        if(confirma) { 
-            localStorage.clear(); 
-            location.reload(); 
+        if(confirm("⚠️ ATENÇÃO: Apagar todo o histórico?")) { 
+            localStorage.clear(); location.reload(); 
         } 
     }
 </script>
