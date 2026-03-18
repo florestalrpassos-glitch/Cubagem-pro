@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>COLETOR FLORESTAL V8</title>
+    <title>COLETOR FLORESTAL V9</title>
     <style>
-        :root { --p: #2e7d32; --s: #1565c0; --t: #455a64; }
+        :root { --p: #2e7d32; --s: #1565c0; --t: #455a64; --warn: #d32f2f; }
         body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 10px; }
         .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
         .tab { flex: 1; padding: 22px; font-size: 1.1em; font-weight: bold; border: none; border-radius: 12px; background: #333; color: #fff; }
@@ -13,11 +13,12 @@
         .card { background: #1e1e1e; padding: 20px; border-radius: 15px; margin-bottom: 12px; border: 1px solid #333; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #81c784; font-size: 0.9em; }
         input, select { width: 100%; padding: 18px; margin-bottom: 15px; border-radius: 10px; border: none; font-size: 18px; background: #eee; color: #000; box-sizing: border-box; }
-        .btn-g { width: 100%; padding: 25px; border: none; border-radius: 15px; font-size: 1.2em; font-weight: bold; color: white; cursor: pointer; }
+        .btn-g { width: 100%; padding: 25px; border: none; border-radius: 15px; font-size: 1.3em; font-weight: bold; color: white; cursor: pointer; }
         .btn-gps { background: var(--t); margin-bottom: 10px; border: 1px solid #fff; }
         .btn-save { background: var(--p); }
-        .btn-exp-l { background: #ffa000; margin-top: 20px; color: #000; }
-        .btn-exp-t { background: #00796b; margin-top: 10px; }
+        .btn-exp-l { background: #ffa000; margin-top: 20px; color: #000; border: 2px solid #fff; }
+        .btn-exp-t { background: #00796b; margin-top: 10px; border: 2px solid #fff; }
+        .btn-danger { background: none; color: var(--warn); border: 1px solid var(--warn); padding: 15px; margin-top: 50px; border-radius: 10px; width: 100%; font-weight: bold; }
         .status-gps { text-align: center; font-size: 1.1em; margin: 10px 0; color: #ffeb3b; font-weight: bold; }
         .hidden { display: none; }
     </style>
@@ -70,10 +71,11 @@
 
     <button class="btn-g btn-exp-l" onclick="exportar('L')">📥 EXPORTAR PLANILHA LENHA</button>
     <button class="btn-g btn-exp-t" onclick="exportar('T')">📥 EXPORTAR PLANILHA TORAS</button>
-    <button style="background:none; color:#666; border:none; width:100%; margin-top:50px;" onclick="limpar()">LIMPAR TUDO</button>
+    
+    <button class="btn-danger" onclick="limpar()">⚠️ LIMPAR TUDO (PERDER HISTÓRICO)</button>
 
 <script>
-    var db = JSON.parse(localStorage.getItem('coleta_ba_v8')) || [];
+    var db = JSON.parse(localStorage.getItem('coleta_ba_v9')) || [];
 
     function tab(a) {
         document.getElementById('boxL').className = (a=='L'?'':'hidden');
@@ -126,23 +128,29 @@
             item.vol = (((a1+a2)/2) * item.m1).toFixed(4);
             document.getElementById('t_id').value=''; document.getElementById('t_sp').value=''; document.getElementById('t_c').value=''; document.getElementById('t_d1').value=''; document.getElementById('t_d2').value='';
         }
-        db.push(item); localStorage.setItem('coleta_ba_v8', JSON.stringify(db));
+        db.push(item); localStorage.setItem('coleta_ba_v9', JSON.stringify(db));
         document.getElementById('utme').value = ''; document.getElementById('gps-st').innerText = "Salvo! Pegue o próximo.";
-        alert("REGISTRO SALVO!");
+        alert("REGISTRO SALVO COM SUCESSO!");
     }
 
     function exportar(tipo) {
         var dados = db.filter(i => i.tipo == tipo);
-        if(dados.length == 0) return alert("Nenhum dado deste tipo!");
+        if(dados.length == 0) return alert("Nenhum dado salvo para este tipo!");
         var csv = (tipo == 'L') ? "ID;FUSO;UTM_E;UTM_N;LARGURA;ALTURA;COMPRIMENTO;DATA_HORA;VOL_M3\n" : "ID;ESPECIE;PROTEGIDA;FUSO;UTM_E;UTM_N;COMP_M;D1_M;D2_M;DATA_HORA;VOL_M3\n";
         dados.forEach(i => {
             csv += (tipo == 'L') ? `${i.id};${i.fuso};${i.e};${i.n};${i.m1};${i.m2};${i.m3};${i.hora};${i.vol}\n` : `${i.id};${i.sp};${i.prot};${i.fuso};${i.e};${i.n};${i.m1};${i.m2};${i.m3};${i.hora};${i.vol}\n`;
         });
         var blob = new Blob(["\ufeff", csv], {type: 'text/csv'});
-        var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = (tipo == 'L' ? "lenha_brumado.csv" : "toras_brumado.csv"); a.click();
+        var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = (tipo == 'L' ? "lenha_bahia.csv" : "toras_bahia.csv"); a.click();
     }
 
-    function limpar() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } }
+    function limpar() { 
+        var confirma = confirm("⚠️ ATENÇÃO: Você está prestes a apagar TODOS os dados coletados. Se você não exportou a planilha ainda, vai perder todo o trabalho. Deseja continuar?");
+        if(confirma) { 
+            localStorage.clear(); 
+            location.reload(); 
+        } 
+    }
 </script>
 </body>
 </html>
